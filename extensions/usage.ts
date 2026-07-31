@@ -473,7 +473,7 @@ function formatRemainingDuration(endIso: string, now = Date.now()): string | und
 
 /** Full multi-line report for `/grok-usage`. */
 export function renderUsage(usage: UsageSnapshot): string {
-  const lines = ["Grok usage (unofficial, revision-pinned):"];
+  const lines = ["Grok usage:"];
   const percent = effectivePercent(usage);
   const remaining = remainingPercent(usage);
   if (usage.subscriptionTier) lines.push(`Subscription: ${usage.subscriptionTier}`);

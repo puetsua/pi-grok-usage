@@ -71,6 +71,8 @@ describe("renderUsageStatus", () => {
 describe("renderUsage", () => {
   it("includes remaining and reset fields", () => {
     const text = renderUsage(parseUsage(creditsNew));
+    expect(text).toContain("Grok usage:");
+    expect(text).not.toContain("unofficial");
     expect(text).toContain("Included usage: 42.5% used");
     expect(text).toContain("Included remaining: 57.5%");
     expect(text).toContain("Subscription: SuperGrok");
