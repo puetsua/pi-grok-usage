@@ -6,8 +6,6 @@ A [Pi](https://pi.dev/) extension that shows your xAI SuperGrok / X Premium subs
 AM● a:0 d:0 SuperGrok 56.7% (7/20 14:00)
 ```
 
-Needs an xAI **OAuth** login (not an API key). Built-in `/login xai` is enough; optional fallbacks are `~/.grok/auth.json` or an existing `xai-auth` OAuth session.
-
 ## Installing
 
 ```bash
