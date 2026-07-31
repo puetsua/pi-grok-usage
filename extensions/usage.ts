@@ -471,6 +471,19 @@ function formatRemainingDuration(endIso: string, now = Date.now()): string | und
   return `${Math.max(1, minutes)}m`;
 }
 
+/** Full local date/time for `/grok-usage` (e.g. `Jul 20, 2026, 8:00 AM`). */
+export function formatReadableLocal(iso: string): string | undefined {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return undefined;
+  return new Date(ms).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 /** Full multi-line report for `/grok-usage`. */
 export function renderUsage(usage: UsageSnapshot): string {
   const lines = ["Grok usage:"];
@@ -487,10 +500,14 @@ export function renderUsage(usage: UsageSnapshot): string {
         + `${usage.monthlyLimitCents !== undefined ? ` of ${formatCents(usage.monthlyLimitCents)}` : ""}`,
     );
   }
-  if (usage.currentPeriod?.start) lines.push(`Period start: ${usage.currentPeriod.start}`);
+  const periodStart = usage.currentPeriod?.start
+    ? formatReadableLocal(usage.currentPeriod.start)
+    : undefined;
+  if (periodStart) lines.push(`Period start: ${periodStart}`);
   if (usage.currentPeriod?.end) {
+    const when = formatReadableLocal(usage.currentPeriod.end) ?? usage.currentPeriod.end;
     const left = formatRemainingDuration(usage.currentPeriod.end);
-    lines.push(`Reset: ${usage.currentPeriod.end}${left ? ` (${left})` : ""}`);
+    lines.push(`Reset: ${when}${left ? ` (${left})` : ""}`);
   }
   if (usage.onDemandUsedCents !== undefined || usage.onDemandCapCents !== undefined) {
     lines.push(

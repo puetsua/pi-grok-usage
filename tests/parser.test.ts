@@ -69,10 +69,14 @@ describe("renderUsageStatus", () => {
 });
 
 describe("renderUsage", () => {
-  it("includes remaining and reset fields", () => {
+  it("includes remaining and readable local timestamps", () => {
     const text = renderUsage(parseUsage(creditsNew));
     expect(text).toContain("Grok usage:");
     expect(text).not.toContain("unofficial");
+    expect(text).not.toMatch(/Period start: \d{4}-\d{2}-\d{2}T/);
+    expect(text).not.toMatch(/Reset: \d{4}-\d{2}-\d{2}T/);
+    expect(text).toMatch(/Period start: /);
+    expect(text).toMatch(/Reset: /);
     expect(text).toContain("Included usage: 42.5% used");
     expect(text).toContain("Included remaining: 57.5%");
     expect(text).toContain("Subscription: SuperGrok");
