@@ -3,7 +3,7 @@
 A [Pi](https://pi.dev/) extension that shows your xAI SuperGrok / X Premium subscription usage in the footer status line.
 
 ```text
-AM● a:0 d:0 SuperGrok 56.7% (7/20 14:00)
+SuperGrok 56.7% (7/20 14:00)
 ```
 
 ## Installing
