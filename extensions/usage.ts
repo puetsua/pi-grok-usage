@@ -512,7 +512,20 @@ export function renderUsage(usage: UsageSnapshot): string {
   return lines.join("\n");
 }
 
-/** Compact footer status: `Grok 58% left · 3d 12h`. */
+/** Format a validated RFC3339 timestamp as `YYYY-MM-DD HH:mm UTC`. */
+export function formatResetDateTime(iso: string): string | undefined {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return undefined;
+  const d = new Date(ms);
+  const yyyy = d.getUTCFullYear().toString().padStart(4, "0");
+  const mm = (d.getUTCMonth() + 1).toString().padStart(2, "0");
+  const dd = d.getUTCDate().toString().padStart(2, "0");
+  const hh = d.getUTCHours().toString().padStart(2, "0");
+  const min = d.getUTCMinutes().toString().padStart(2, "0");
+  return `${yyyy}-${mm}-${dd} ${hh}:${min} UTC`;
+}
+
+/** Compact footer status: `Grok 58% left · reset 2026-07-20 00:00 UTC · 3d 12h`. */
 export function renderUsageStatus(usage: UsageSnapshot, now = Date.now()): string {
   const remaining = remainingPercent(usage);
   const used = effectivePercent(usage);
@@ -529,9 +542,10 @@ export function renderUsageStatus(usage: UsageSnapshot, now = Date.now()): strin
     parts.push("usage ok");
   }
   if (usage.currentPeriod?.end) {
+    const when = formatResetDateTime(usage.currentPeriod.end);
+    if (when) parts.push(`reset ${when}`);
     const left = formatRemainingDuration(usage.currentPeriod.end, now);
     if (left) parts.push(left);
-    else parts.push(`reset ${usage.currentPeriod.end.slice(0, 10)}`);
   }
   return `Grok ${parts.join(" · ")}`;
 }

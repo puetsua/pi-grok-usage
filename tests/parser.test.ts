@@ -47,11 +47,11 @@ describe("parseUsage", () => {
 });
 
 describe("renderUsageStatus", () => {
-  it("shows remaining percent and time left", () => {
+  it("shows remaining percent, reset datetime, and time left", () => {
     const usage = parseUsage(creditsNew);
-    // 42.5% used → 57.5% left; period ends 2026-07-20
+    // 42.5% used → 57.5% left; period ends 2026-07-20T00:00:00Z
     const text = renderUsageStatus(usage, Date.parse("2026-07-17T00:00:00Z"));
-    expect(text).toBe("Grok 57.5% left · 3d 0h");
+    expect(text).toBe("Grok 57.5% left · reset 2026-07-20 00:00 UTC · 3d 0h");
   });
 
   it("falls back when only prepaid is present", () => {

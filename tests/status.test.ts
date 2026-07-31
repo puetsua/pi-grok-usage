@@ -79,8 +79,8 @@ describe("/grok-usage command and status lifecycle", () => {
     expect(notifications.at(-1)?.type).toBe("info");
     expect(notifications.at(-1)?.message).toContain("Included usage: 25% used");
     // default status on also updates footer from the one-shot
-    expect(statuses.at(-1)?.key).toBe("grok-usage");
-    expect(statuses.at(-1)?.text).toMatch(/^Grok 75% left/);
+    expect(statuses.at(-1)?.key).toBe("pi-grok-usage");
+    expect(statuses.at(-1)?.text).toMatch(/^Grok 75% left · reset 2026-08-01 00:00 UTC/);
   });
 
   it("validates arguments", async () => {
@@ -92,13 +92,13 @@ describe("/grok-usage command and status lifecycle", () => {
   it("can disable and re-enable status", async () => {
     const state = setup();
     await state.run("status off");
-    expect(state.statuses.at(-1)).toEqual({ key: "grok-usage", text: undefined });
+    expect(state.statuses.at(-1)).toEqual({ key: "pi-grok-usage", text: undefined });
     await state.run("status");
     expect(state.notifications.at(-1)?.message).toMatch(/status is off/);
 
     await state.run("status on");
     expect(state.fetchUsage).toHaveBeenCalled();
-    expect(state.statuses.at(-1)?.text).toMatch(/^Grok 75% left/);
+    expect(state.statuses.at(-1)?.text).toMatch(/^Grok 75% left · reset 2026-08-01 00:00 UTC/);
   });
 
   it("clears status for non-xAI models but keeps preference", async () => {
@@ -108,7 +108,7 @@ describe("/grok-usage command and status lifecycle", () => {
 
     state.setModel({ provider: "anthropic", id: "claude" });
     await state.feature.syncForModel(state.ctx);
-    expect(state.statuses.at(-1)).toEqual({ key: "grok-usage", text: undefined });
+    expect(state.statuses.at(-1)).toEqual({ key: "pi-grok-usage", text: undefined });
   });
 
   it("rate-limits refreshStatus", async () => {

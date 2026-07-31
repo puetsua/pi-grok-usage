@@ -25,7 +25,8 @@ export const USAGE_MAX_JSON_NODES = 2048;
 export const USAGE_MAX_HISTORY_PERIODS = 24;
 export const USAGE_STATUS_MIN_REFRESH_MS = 60_000;
 
-export const STATUS_KEY = "grok-usage";
+/** Sorts after pi-automode (`AM● a:0 d:0`) in Pi's alphabetical status line. */
+export const STATUS_KEY = "pi-grok-usage";
 export const COMMAND_HELP = "Usage: /grok-usage [status [on|off]]";
 
 export function isXaiProvider(provider: unknown): provider is XaiProviderId {
