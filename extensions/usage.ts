@@ -1,7 +1,6 @@
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
-  ExtensionContext,
   ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
 import { hasXaiOAuth, resolveOAuthCredential, type OAuthCredential } from "./auth";
