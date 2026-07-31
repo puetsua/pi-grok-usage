@@ -541,7 +541,7 @@ export function formatResetLocal(iso: string): string | undefined {
   return `${month}/${day} ${hh}:${min}`;
 }
 
-/** Compact footer status: `Grok 56.7% (7/20 14:00)`. */
+/** Compact footer status: `SuperGrok 56.7% (7/20 14:00)`. */
 export function renderUsageStatus(usage: UsageSnapshot, _now = Date.now()): string {
   const remaining = remainingPercent(usage);
   const used = effectivePercent(usage);
@@ -560,7 +560,7 @@ export function renderUsageStatus(usage: UsageSnapshot, _now = Date.now()): stri
   const when = usage.currentPeriod?.end
     ? formatResetLocal(usage.currentPeriod.end)
     : undefined;
-  return when ? `Grok ${core} (${when})` : `Grok ${core}`;
+  return when ? `SuperGrok ${core} (${when})` : `SuperGrok ${core}`;
 }
 
 export interface UsageFeature {

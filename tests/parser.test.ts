@@ -56,7 +56,7 @@ describe("renderUsageStatus", () => {
       .getHours()
       .toString()
       .padStart(2, "0")}:${local.getMinutes().toString().padStart(2, "0")}`;
-    expect(text).toBe(`Grok 57.5% (${expectedWhen})`);
+    expect(text).toBe(`SuperGrok 57.5% (${expectedWhen})`);
   });
 
   it("falls back when only prepaid is present", () => {
@@ -64,7 +64,7 @@ describe("renderUsageStatus", () => {
       { history: [], prepaidBalanceCents: 999 },
       Date.now(),
     );
-    expect(text).toBe("Grok $9.99");
+    expect(text).toBe("SuperGrok $9.99");
   });
 });
 
