@@ -30,15 +30,6 @@ Status is **on by default** for active `xai` / `xai-auth` models.
 
 Refreshes after turns (at most once per minute). Clears when you leave an xAI model.
 
-## Releasing
-
-Push a bare semver tag (no `v` prefix). GitHub Actions publishes to npm via OIDC (`environment: npm`) and opens a GitHub Release:
-
-```bash
-git tag 1.0.1
-git push origin 1.0.1
-```
-
 ## License
 
 MIT
