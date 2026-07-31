@@ -23,32 +23,54 @@ function parseExpiry(value: unknown): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function tokenFromAuthResolution(auth: {
-  ok?: boolean;
-  apiKey?: string;
-  headers?: Record<string, string>;
-} | null | undefined): string | null {
-  if (!auth?.ok) return null;
-  if (typeof auth.apiKey === "string" && auth.apiKey) return auth.apiKey;
+function extractBearerToken(authLike: unknown): string | null {
+  if (!authLike || typeof authLike !== "object") return null;
+  const payload = authLike as { apiKey?: unknown; headers?: Record<string, string> };
+  if (typeof payload.apiKey === "string" && payload.apiKey) return payload.apiKey;
   const authorization =
-    typeof auth.headers?.Authorization === "string" ? auth.headers.Authorization : "";
+    typeof payload.headers?.Authorization === "string" ? payload.headers.Authorization : "";
   return authorization.toLowerCase().startsWith("bearer ")
     ? authorization.slice("bearer ".length).trim() || null
     : null;
 }
 
-function registryUsesOAuth(registry: any, model: any, providerId: string): boolean {
+/**
+ * Accept both Pi AuthResult `{ auth: { apiKey, headers } }` and
+ * getApiKeyAndHeaders `{ ok, apiKey, headers }`.
+ */
+export function tokenFromAuthResolution(resolution: unknown): string | null {
+  if (!resolution || typeof resolution !== "object") return null;
+  const value = resolution as {
+    ok?: boolean;
+    auth?: unknown;
+    apiKey?: unknown;
+    headers?: Record<string, string>;
+  };
+  // Pi ModelRuntime / getProviderAuth AuthResult
+  if (value.auth && typeof value.auth === "object") {
+    return extractBearerToken(value.auth);
+  }
+  // getApiKeyAndHeaders result
+  if ("ok" in value) {
+    if (value.ok !== true) return null;
+    return extractBearerToken(value);
+  }
+  return extractBearerToken(value);
+}
+
+/**
+ * Whether the registry identifies this model/provider as OAuth.
+ * Honors `isUsingOAuth === false` (API-key sessions) and never treats
+ * mere "stored" credentials as OAuth — API keys are also stored.
+ */
+export function registryUsesOAuth(registry: any, model: any, providerId: string): boolean {
   try {
-    if (typeof registry?.isUsingOAuth === "function" && registry.isUsingOAuth(model) === true) {
-      return true;
+    if (typeof registry?.isUsingOAuth === "function") {
+      return registry.isUsingOAuth(model) === true;
     }
     if (typeof registry?.authStorage?.get === "function") {
       const stored = registry.authStorage.get(providerId);
       return stored?.type === "oauth" && typeof stored.access === "string" && !!stored.access;
-    }
-    if (typeof registry?.getProviderAuthStatus === "function") {
-      const status = registry.getProviderAuthStatus(providerId);
-      return status?.configured === true && status.source === "stored";
     }
   } catch {
     return false;
@@ -63,21 +85,24 @@ async function resolveRegistryToken(
 ): Promise<string | null> {
   if (modelRuntime && typeof modelRuntime.getAuth === "function") {
     try {
-      return tokenFromAuthResolution(await modelRuntime.getAuth(model));
+      const token = tokenFromAuthResolution(await modelRuntime.getAuth(model));
+      if (token) return token;
     } catch {
       // Fall through to registry projections.
     }
   }
   if (registry && typeof registry.getAuth === "function") {
     try {
-      return tokenFromAuthResolution(await registry.getAuth(model));
+      const token = tokenFromAuthResolution(await registry.getAuth(model));
+      if (token) return token;
     } catch {
       // Fall through.
     }
   }
   if (typeof registry?.getApiKeyAndHeaders === "function") {
     try {
-      return tokenFromAuthResolution(await registry.getApiKeyAndHeaders(model));
+      const token = tokenFromAuthResolution(await registry.getApiKeyAndHeaders(model));
+      if (token) return token;
     } catch {
       // Fall through.
     }
@@ -98,21 +123,21 @@ function providerIdsFor(ctx: any): XaiProviderId[] {
   return [...XAI_PROVIDER_IDS];
 }
 
-/** True when Pi currently has an xAI OAuth credential available for usage lookups. */
+/** True when an xAI OAuth credential is available (registry or local files). */
 export function hasXaiOAuth(ctx: any): boolean {
   const registry = ctx?.modelRegistry;
-  if (!registry) return false;
-  for (const providerId of providerIdsFor(ctx)) {
-    const candidates = [
-      ctx?.model?.provider === providerId ? ctx.model : undefined,
-      typeof registry.find === "function" ? registry.find(providerId, "grok-4.5") : undefined,
-    ].filter(Boolean);
-    if (candidates.some((model) => registryUsesOAuth(registry, model, providerId))) {
-      return true;
+  if (registry) {
+    for (const providerId of providerIdsFor(ctx)) {
+      const candidates = [
+        ctx?.model?.provider === providerId ? ctx.model : undefined,
+        typeof registry.find === "function" ? registry.find(providerId, "grok-4.5") : undefined,
+      ].filter(Boolean);
+      if (candidates.some((model) => registryUsesOAuth(registry, model, providerId))) {
+        return true;
+      }
     }
   }
-  if (readPiStoredOAuthToken() || readGrokCliToken()) return true;
-  return false;
+  return !!(readPiStoredOAuthToken() || readGrokCliToken());
 }
 
 function readJsonFile(path: string): any | undefined {
@@ -131,6 +156,12 @@ function agentDir(): string {
   return join(homedir(), ".pi", "agent");
 }
 
+function grokAuthPath(): string {
+  const override = process.env.PI_GROK_AUTH_PATH?.trim();
+  if (override) return override;
+  return join(homedir(), ".grok", "auth.json");
+}
+
 function oauthAccessFromStored(stored: any): string | null {
   if (stored?.type === "oauth" && typeof stored.access === "string" && stored.access) {
     const expires = parseExpiry(stored.expires);
@@ -140,7 +171,8 @@ function oauthAccessFromStored(stored: any): string | null {
   return null;
 }
 
-function readPiStoredOAuthToken(): string | null {
+/** Read Pi-managed OAuth tokens from auth.json (xai / xai-auth only). */
+export function readPiStoredOAuthToken(): string | null {
   const data = readJsonFile(join(agentDir(), "auth.json"));
   if (!data || typeof data !== "object") return null;
   for (const providerId of XAI_PROVIDER_IDS) {
@@ -152,7 +184,7 @@ function readPiStoredOAuthToken(): string | null {
 
 /** Read-only reuse of official Grok CLI credentials at ~/.grok/auth.json. */
 export function readGrokCliToken(): string | null {
-  const data = readJsonFile(join(homedir(), ".grok", "auth.json"));
+  const data = readJsonFile(grokAuthPath());
   if (!data || typeof data !== "object") return null;
 
   const oidc = data[XAI_GROK_CLI_AUTH_SCOPE_KEY];
@@ -176,8 +208,9 @@ export function readGrokCliToken(): string | null {
 }
 
 /**
- * Resolve an OAuth bearer for the unofficial usage surface.
- * Rejects API-key-only provenance when the active provider is known non-OAuth.
+ * Resolve an OAuth bearer for the usage surface.
+ * Registry tokens are used only when OAuth is confirmed; otherwise falls back to
+ * Pi auth.json and Grok CLI credentials. API-key-only registry auth is skipped.
  */
 export async function resolveOAuthCredential(ctx: any): Promise<OAuthCredential | null> {
   const registry = ctx?.modelRegistry;

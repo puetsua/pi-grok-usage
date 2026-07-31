@@ -111,7 +111,7 @@ describe("/grok-usage command and status lifecycle", () => {
     expect(state.statuses.at(-1)).toEqual({ key: "pi-grok-usage", text: undefined });
   });
 
-  it("rate-limits refreshStatus", async () => {
+  it("rate-limits refreshStatus after success", async () => {
     const state = setup();
     await state.feature.refreshStatus(state.ctx);
     await state.feature.refreshStatus(state.ctx);
@@ -119,5 +119,15 @@ describe("/grok-usage command and status lifecycle", () => {
     state.setNow(70_000);
     await state.feature.refreshStatus(state.ctx);
     expect(state.fetchUsage).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries promptly after a failed refresh", async () => {
+    const state = setup();
+    state.fetchUsage.mockRejectedValueOnce(new Error("timeout"));
+    await state.feature.refreshStatus(state.ctx);
+    expect(state.statuses.at(-1)).toEqual({ key: "pi-grok-usage", text: undefined });
+    await state.feature.refreshStatus(state.ctx);
+    expect(state.fetchUsage).toHaveBeenCalledTimes(2);
+    expect(state.statuses.at(-1)?.text).toMatch(/^SuperGrok 75% \(/);
   });
 });

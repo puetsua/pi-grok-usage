@@ -663,11 +663,11 @@ export function registerUsage(
       return { ok: false };
     }
     const now = dependencies.now();
+    // Rate-limit only after a successful refresh so failures can retry promptly.
     if (!force && lastRefreshAt > 0 && now - lastRefreshAt < dependencies.minimumRefreshMs) {
       return { ok: true };
     }
     if (refreshPromise) return refreshPromise;
-    lastRefreshAt = now;
     const refreshGeneration = generation;
     const controller = new AbortController();
     statusController = controller;
@@ -681,13 +681,13 @@ export function registerUsage(
           && !controller.signal.aborted
         ) {
           ctx.ui.setStatus(STATUS_KEY, renderUsageStatus(usage, dependencies.now()));
+          lastRefreshAt = dependencies.now();
         }
         return { ok: true };
       } catch (error) {
         const safeError = safeUsageError(error);
         if (refreshGeneration === generation) {
-          if (safeError.code === "auth") clear(ctx);
-          else clear(ctx);
+          clear(ctx);
         }
         return { ok: false, error: safeError };
       } finally {
