@@ -47,11 +47,16 @@ describe("parseUsage", () => {
 });
 
 describe("renderUsageStatus", () => {
-  it("shows remaining percent, reset datetime, and time left", () => {
+  it("shows remaining percent and local reset M/D HH:mm", () => {
     const usage = parseUsage(creditsNew);
-    // 42.5% used → 57.5% left; period ends 2026-07-20T00:00:00Z
+    // 42.5% used → 57.5% remaining; period ends 2026-07-20T00:00:00Z
     const text = renderUsageStatus(usage, Date.parse("2026-07-17T00:00:00Z"));
-    expect(text).toBe("Grok 57.5% left · reset 2026-07-20 00:00 UTC · 3d 0h");
+    const local = new Date("2026-07-20T00:00:00Z");
+    const expectedWhen = `${local.getMonth() + 1}/${local.getDate()} ${local
+      .getHours()
+      .toString()
+      .padStart(2, "0")}:${local.getMinutes().toString().padStart(2, "0")}`;
+    expect(text).toBe(`Grok 57.5% (${expectedWhen})`);
   });
 
   it("falls back when only prepaid is present", () => {
@@ -59,7 +64,7 @@ describe("renderUsageStatus", () => {
       { history: [], prepaidBalanceCents: 999 },
       Date.now(),
     );
-    expect(text).toBe("Grok $9.99 prepaid");
+    expect(text).toBe("Grok $9.99");
   });
 });
 

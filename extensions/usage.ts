@@ -512,42 +512,38 @@ export function renderUsage(usage: UsageSnapshot): string {
   return lines.join("\n");
 }
 
-/** Format a validated RFC3339 timestamp as `YYYY-MM-DD HH:mm UTC`. */
-export function formatResetDateTime(iso: string): string | undefined {
+/** Format reset as local `M/D HH:mm` (e.g. `7/20 14:00`). */
+export function formatResetLocal(iso: string): string | undefined {
   const ms = Date.parse(iso);
   if (!Number.isFinite(ms)) return undefined;
   const d = new Date(ms);
-  const yyyy = d.getUTCFullYear().toString().padStart(4, "0");
-  const mm = (d.getUTCMonth() + 1).toString().padStart(2, "0");
-  const dd = d.getUTCDate().toString().padStart(2, "0");
-  const hh = d.getUTCHours().toString().padStart(2, "0");
-  const min = d.getUTCMinutes().toString().padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${min} UTC`;
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const hh = d.getHours().toString().padStart(2, "0");
+  const min = d.getMinutes().toString().padStart(2, "0");
+  return `${month}/${day} ${hh}:${min}`;
 }
 
-/** Compact footer status: `Grok 58% left · reset 2026-07-20 00:00 UTC · 3d 12h`. */
-export function renderUsageStatus(usage: UsageSnapshot, now = Date.now()): string {
+/** Compact footer status: `Grok 56.7% (7/20 14:00)`. */
+export function renderUsageStatus(usage: UsageSnapshot, _now = Date.now()): string {
   const remaining = remainingPercent(usage);
   const used = effectivePercent(usage);
-  const parts: string[] = [];
+  let core: string;
   if (remaining !== undefined) {
-    parts.push(`${formatPercent(remaining)} left`);
+    core = formatPercent(remaining);
   } else if (used !== undefined) {
-    parts.push(`${formatPercent(used)} used`);
+    core = formatPercent(used);
   } else if (usage.usedCents !== undefined && usage.monthlyLimitCents !== undefined) {
-    parts.push(`${formatCents(usage.usedCents)}/${formatCents(usage.monthlyLimitCents)}`);
+    core = `${formatCents(usage.usedCents)}/${formatCents(usage.monthlyLimitCents)}`;
   } else if (usage.prepaidBalanceCents !== undefined) {
-    parts.push(`${formatCents(usage.prepaidBalanceCents)} prepaid`);
+    core = formatCents(usage.prepaidBalanceCents);
   } else {
-    parts.push("usage ok");
+    core = "ok";
   }
-  if (usage.currentPeriod?.end) {
-    const when = formatResetDateTime(usage.currentPeriod.end);
-    if (when) parts.push(`reset ${when}`);
-    const left = formatRemainingDuration(usage.currentPeriod.end, now);
-    if (left) parts.push(left);
-  }
-  return `Grok ${parts.join(" · ")}`;
+  const when = usage.currentPeriod?.end
+    ? formatResetLocal(usage.currentPeriod.end)
+    : undefined;
+  return when ? `Grok ${core} (${when})` : `Grok ${core}`;
 }
 
 export interface UsageFeature {

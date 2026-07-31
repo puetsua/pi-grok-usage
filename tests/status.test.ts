@@ -80,7 +80,7 @@ describe("/grok-usage command and status lifecycle", () => {
     expect(notifications.at(-1)?.message).toContain("Included usage: 25% used");
     // default status on also updates footer from the one-shot
     expect(statuses.at(-1)?.key).toBe("pi-grok-usage");
-    expect(statuses.at(-1)?.text).toMatch(/^Grok 75% left · reset 2026-08-01 00:00 UTC/);
+    expect(statuses.at(-1)?.text).toMatch(/^Grok 75% \(/);
   });
 
   it("validates arguments", async () => {
@@ -98,7 +98,7 @@ describe("/grok-usage command and status lifecycle", () => {
 
     await state.run("status on");
     expect(state.fetchUsage).toHaveBeenCalled();
-    expect(state.statuses.at(-1)?.text).toMatch(/^Grok 75% left · reset 2026-08-01 00:00 UTC/);
+    expect(state.statuses.at(-1)?.text).toMatch(/^Grok 75% \(/);
   });
 
   it("clears status for non-xAI models but keeps preference", async () => {
